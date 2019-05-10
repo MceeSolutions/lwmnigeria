@@ -16,7 +16,7 @@
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
     'category': 'LWM',
-    'version': '0.02',
+    'version': '0.03',
 
 
     # any module necessary for this one to work correctly
