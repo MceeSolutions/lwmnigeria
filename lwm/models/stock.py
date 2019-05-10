@@ -142,12 +142,13 @@ class SaleOrder(models.Model):
     discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
     total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=True, default=0.0)
     
+    @api.one
     @api.depends('order_line.discount')
     def _compute_discounted_amount(self):
         for line in self.order_line:
             discount_price = line.price_unit * ((line.discount or 0.0) / 100.0)
             self.discounted_amount += discount_price
-            
+    @api.one        
     @api.depends('order_line.product_uom_qty')
     def _compute_total_ordered_quantity(self):
         for line in self.order_line:
@@ -157,6 +158,7 @@ class SaleOrderLine(models.Model):
     _name = 'sale.order.line'
     _inherit = 'sale.order.line'
     
+    @api.one
     @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id')
     def _compute_amount(self):
         """
@@ -178,6 +180,7 @@ class AccountInvoice(models.Model):
     
     discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
     
+    @api.one
     @api.depends('invoice_line_ids.discount')
     def _compute_discounted_amount(self):
         for line in self.invoice_line_ids:
