@@ -208,11 +208,15 @@ class AccountInvoiceLine(models.Model):
             price_subtotal_signed = self.invoice_id.currency_id.with_context(date=self.invoice_id._get_currency_rate_date()).compute(price_subtotal_signed, self.invoice_id.company_id.currency_id)
         sign = self.invoice_id.type in ['in_refund', 'out_refund'] and -1 or 1
         self.price_subtotal_signed = price_subtotal_signed * sign  
+
+class ResCompany(models.Model):
+    _inherit = "res.company"
     
+    company_discount_account_id = fields.Many2one(comodel_name='account.account', string='Discount Account', company_dependent=True)
     
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
     
-    discount_account_id = fields.Many2one(comodel_name='account.account', string='Discount Account')
+    discount_account_id = fields.Many2one(comodel_name='account.account', string='Discount Account', company_dependent=True, related='company_id.company_discount_account_id')
     
 
