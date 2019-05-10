@@ -210,8 +210,9 @@ class AccountInvoiceLine(models.Model):
         self.price_subtotal_signed = price_subtotal_signed * sign  
     
     
+class ResConfigSettings(models.TransientModel):
+    _inherit = 'res.config.settings'
     
-    
-    
+    discount_account_id = fields.Many2one(comodel_name='account.account', string='Discount Account')
     
 
