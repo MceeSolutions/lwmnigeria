@@ -135,4 +135,80 @@ class StockMove(models.Model):
     
     account_id = fields.Many2one('account.account', string='Account', index=True, ondelete='cascade')
 
+class SaleOrder(models.Model):
+    _name = "sale.order"
+    _inherit = "sale.order"
+    
+    discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
+    total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=True, default=0.0)
+    
+    @api.depends('order_line.discount')
+    def _compute_discounted_amount(self):
+        for line in self.order_line:
+            discount_price = line.price_unit * ((line.discount or 0.0) / 100.0)
+            self.discounted_amount += discount_price
+            
+    @api.depends('order_line.product_uom_qty')
+    def _compute_total_ordered_quantity(self):
+        for line in self.order_line:
+            self.total_ordered_quantity += line.product_uom_qty
+
+class SaleOrderLine(models.Model):
+    _name = 'sale.order.line'
+    _inherit = 'sale.order.line'
+    
+    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id')
+    def _compute_amount(self):
+        """
+        Compute the amounts of the SO line.
+        """
+        for line in self:
+            price = line.price_unit
+            taxes = line.tax_id.compute_all(price, line.order_id.currency_id, line.product_uom_qty, product=line.product_id, partner=line.order_id.partner_shipping_id)
+            line.update({
+                'price_tax': sum(t.get('amount', 0.0) for t in taxes.get('taxes', [])),
+                'price_total': taxes['total_included'],
+                'price_subtotal': taxes['total_excluded'],
+            })
+    
+    
+class AccountInvoice(models.Model):
+    _name = "account.invoice"
+    _inherit = "account.invoice"
+    
+    discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
+    
+    @api.depends('invoice_line_ids.discount')
+    def _compute_discounted_amount(self):
+        for line in self.invoice_line_ids:
+            discount_price = line.price_unit * ((line.discount or 0.0) / 100.0)
+            self.discounted_amount += discount_price
+    
+class AccountInvoiceLine(models.Model):
+    _name = "account.invoice.line"
+    _inherit = "account.invoice.line"
+    
+    
+    @api.one
+    @api.depends('price_unit', 'discount', 'invoice_line_tax_ids', 'quantity',
+        'product_id', 'invoice_id.partner_id', 'invoice_id.currency_id', 'invoice_id.company_id',
+        'invoice_id.date_invoice', 'invoice_id.date')
+    def _compute_price(self):
+        currency = self.invoice_id and self.invoice_id.currency_id or None
+        price = self.price_unit
+        taxes = False
+        if self.invoice_line_tax_ids:
+            taxes = self.invoice_line_tax_ids.compute_all(price, currency, self.quantity, product=self.product_id, partner=self.invoice_id.partner_id)
+        self.price_subtotal = price_subtotal_signed = taxes['total_excluded'] if taxes else self.quantity * price
+        self.price_total = taxes['total_included'] if taxes else self.price_subtotal
+        if self.invoice_id.currency_id and self.invoice_id.currency_id != self.invoice_id.company_id.currency_id:
+            price_subtotal_signed = self.invoice_id.currency_id.with_context(date=self.invoice_id._get_currency_rate_date()).compute(price_subtotal_signed, self.invoice_id.company_id.currency_id)
+        sign = self.invoice_id.type in ['in_refund', 'out_refund'] and -1 or 1
+        self.price_subtotal_signed = price_subtotal_signed * sign  
+    
+    
+    
+    
+    
+    
 

@@ -15,16 +15,16 @@
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
-    'category': 'Netcom',
-    'version': '0.01',
+    'category': 'LWM',
+    'version': '0.02',
 
 
     # any module necessary for this one to work correctly
-    'depends': ['stock','stock_account'],
+    'depends': ['stock','stock_account','sale','account_invoicing'],
 
     # always loaded
     'data': [
-
+        'views/stock_views.xml',
     ],
     # only loaded in demonstration mode
     'demo': [
