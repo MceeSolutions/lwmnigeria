@@ -6,7 +6,11 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
-	        <field name="amount_untaxed" position="before">
+	        <field name="amount_tax" position="after">
+	        	<div class="oe_subtotal_footer_separator oe_inline o_td_label">
+                	<label for="sub_total" />
+                </div>
+                <field name="sub_total" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id'}"/>
                 <field name="discounted_amount" widget='monetary' options="{'currency_field': 'currency_id'}"/>
 	        </field>	
         </field>
@@ -28,7 +32,11 @@
         <field name="model">account.invoice</field>
         <field name="inherit_id" ref="account.invoice_form"/>
         <field name="arch" type="xml">
-	        <field name="amount_untaxed" position="before">
+	        <field name="amount_tax" position="after">
+	        	<div class="oe_subtotal_footer_separator oe_inline o_td_label">
+                	<label for="sub_total" />
+                </div>
+                <field name="sub_total" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id'}"/>
                 <field name="discounted_amount" widget='monetary' options="{'currency_field': 'currency_id'}"/>
 	        </field>
         </field>

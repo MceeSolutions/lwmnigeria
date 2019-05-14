@@ -139,8 +139,33 @@ class SaleOrder(models.Model):
     _name = "sale.order"
     _inherit = "sale.order"
     
+    @api.depends('order_line.price_total')
+    def _amount_all(self):
+        """
+        Compute the total amounts of the SO.
+        """
+        for order in self:
+            amount_untaxed = amount_tax = 0.0
+            for line in order.order_line:
+                amount_untaxed += line.price_subtotal
+                amount_tax += line.price_tax
+            order.update({
+                'amount_untaxed': order.pricelist_id.currency_id.round(amount_untaxed),
+                'amount_tax': order.pricelist_id.currency_id.round(amount_tax),
+                'amount_total': amount_untaxed + amount_tax - order.discounted_amount,
+            })
+    
+    sub_total = fields.Float(string='Sub Total', compute='_compute_sub_amount', store=True, default=0.0)
+    
     discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
     total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=True, default=0.0)
+    
+    @api.one
+    @api.depends('amount_untaxed', 'amount_tax')
+    def _compute_sub_amount(self):
+        for order in self:
+            sub_total = order.amount_untaxed + order.amount_tax
+            self.sub_total = sub_total
     
     @api.one
     @api.depends('order_line.discount')
@@ -178,7 +203,35 @@ class AccountInvoice(models.Model):
     _name = "account.invoice"
     _inherit = "account.invoice"
     
+    @api.one
+    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'tax_line_ids.amount_rounding',
+                 'currency_id', 'company_id', 'date_invoice', 'type')
+    def _compute_amount(self):
+        round_curr = self.currency_id.round
+        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line_ids)
+        self.amount_tax = sum(round_curr(line.amount_total) for line in self.tax_line_ids)
+        self.amount_total = self.amount_untaxed + self.amount_tax - self.discounted_amount
+        amount_total_company_signed = self.amount_total
+        amount_untaxed_signed = self.amount_untaxed
+        if self.currency_id and self.company_id and self.currency_id != self.company_id.currency_id:
+            currency_id = self.currency_id.with_context(date=self.date_invoice)
+            amount_total_company_signed = currency_id.compute(self.amount_total, self.company_id.currency_id)
+            amount_untaxed_signed = currency_id.compute(self.amount_untaxed, self.company_id.currency_id)
+        sign = self.type in ['in_refund', 'out_refund'] and -1 or 1
+        self.amount_total_company_signed = amount_total_company_signed * sign
+        self.amount_total_signed = self.amount_total * sign
+        self.amount_untaxed_signed = amount_untaxed_signed * sign
+    
     discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
+    
+    sub_total = fields.Float(string='Sub Total', compute='_compute_sub_amount', store=True, default=0.0)
+    
+    @api.one
+    @api.depends('amount_untaxed', 'amount_tax')
+    def _compute_sub_amount(self):
+        for order in self:
+            sub_total = order.amount_untaxed + order.amount_tax
+            self.sub_total = sub_total
     
     @api.one
     @api.depends('invoice_line_ids.discount')
