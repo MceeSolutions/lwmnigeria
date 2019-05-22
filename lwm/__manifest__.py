@@ -16,7 +16,7 @@
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
     'category': 'Netcom',
-    'version': '0.01',
+    'version': '0.07',
 
 
     # any module necessary for this one to work correctly
@@ -24,7 +24,7 @@
 
     # always loaded
     'data': [
-
+        'views/stock_views.xml',
     ],
     # only loaded in demonstration mode
     'demo': [
