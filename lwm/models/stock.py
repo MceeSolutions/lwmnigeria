@@ -159,7 +159,8 @@ class SaleOrder(models.Model):
     
     discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
     total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=True, default=0.0)
-    
+    confirmation_date = fields.Datetime(string='Confirmation Date', readonly=False, index=True, help="Date on which the sales order is confirmed.", oldname="date_confirm", copy=False, track_visibility='onchange')
+        
     @api.one
     @api.depends('amount_untaxed', 'amount_tax')
     def _compute_sub_amount(self):
@@ -226,6 +227,8 @@ class AccountInvoice(models.Model):
     
     sub_total = fields.Float(string='Sub Total', compute='_compute_sub_amount', store=True, default=0.0)
     
+    total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=True, default=0.0)
+    
     @api.one
     @api.depends('amount_untaxed', 'amount_tax')
     def _compute_sub_amount(self):
@@ -239,6 +242,12 @@ class AccountInvoice(models.Model):
         for line in self.invoice_line_ids:
             discount_price = line.price_unit * ((line.discount or 0.0) / 100.0)
             self.discounted_amount += discount_price
+    
+    @api.one        
+    @api.depends('invoice_line_ids.quantity')
+    def _compute_total_ordered_quantity(self):
+        for line in self.invoice_line_ids:
+            self.total_ordered_quantity += line.quantity
     
 class AccountInvoiceLine(models.Model):
     _name = "account.invoice.line"
