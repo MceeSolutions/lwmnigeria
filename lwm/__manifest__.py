@@ -16,11 +16,11 @@
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
     'category': 'Netcom',
-    'version': '0.09',
+    'version': '0.10',
 
 
     # any module necessary for this one to work correctly
-    'depends': ['stock','stock_account'],
+    'depends': ['stock','stock_account','purchase'],
 
     # always loaded
     'data': [
