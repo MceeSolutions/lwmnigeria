@@ -277,6 +277,21 @@ class AccountInvoiceLine(models.Model):
         sign = self.invoice_id.type in ['in_refund', 'out_refund'] and -1 or 1
         self.price_subtotal_signed = price_subtotal_signed * sign  
 
+class Picking(models.Model):
+    _inherit = "stock.picking"
+    
+    @api.multi
+    def button_reset(self):
+        self.move_lines.state = 'draft'
+        self.write({'state': 'draft'})
+        return {}
+    
+    location_id = fields.Many2one(
+        'stock.location', "Source Location",
+        default=lambda self: self.env['stock.picking.type'].browse(self._context.get('default_picking_type_id')).default_location_src_id,
+        readonly=True, required=True,
+        states={'draft': [('readonly', False)]})
+    
 class ResCompany(models.Model):
     _inherit = "res.company"
     
