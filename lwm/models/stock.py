@@ -282,7 +282,8 @@ class Picking(models.Model):
     
     @api.multi
     def button_reset(self):
-        self.move_lines.state = 'draft'
+        for move in self.move_lines:
+            move.state = 'draft'
         self.write({'state': 'draft'})
         return {}
     
