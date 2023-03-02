@@ -63,25 +63,6 @@ class AccountMove(models.Model):
             move.amount_residual_signed = total_residual
             move.amount_total_in_currency_signed = abs(move.amount_total) if move.move_type == 'entry' else -(sign * move.amount_total)
     
-    # @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'tax_line_ids.amount_rounding',
-    #              'currency_id', 'company_id', 'date_invoice', 'type')
-    # def _compute_amount(self):
-    #     for rec in self:
-    #         round_curr = rec.currency_id.round
-    #         rec.amount_untaxed = sum(line.price_subtotal for line in rec.invoice_line_ids)
-    #         rec.amount_tax = sum(round_curr(line.amount_total) for line in rec.tax_line_ids)
-    #         rec.amount_total = rec.amount_untaxed + rec.amount_tax - rec.discounted_amount
-    #         amount_total_company_signed = rec.amount_total
-    #         amount_untaxed_signed = rec.amount_untaxed
-    #         if rec.currency_id and rec.company_id and rec.currency_id != rec.company_id.currency_id:
-    #             currency_id = self.currency_id.with_context(date=self.date_invoice)
-    #             amount_total_company_signed = currency_id.compute(rec.amount_total, rec.company_id.currency_id)
-    #             amount_untaxed_signed = currency_id.compute(rec.amount_untaxed, rec.company_id.currency_id)
-    #         sign = rec.type in ['in_refund', 'out_refund'] and -1 or 1
-    #         rec.amount_total_company_signed = amount_total_company_signed * sign
-    #         rec.amount_total_signed = rec.amount_total * sign
-    #         rec.amount_untaxed_signed = amount_untaxed_signed * sign
-    
     discounted_amount = fields.Float(string='Discount', compute='_compute_discounted_amount', store=True, default=0.0)
     
     sub_total = fields.Float(string='Sub Total', compute='_compute_sub_amount', store=True, default=0.0)
@@ -126,3 +107,60 @@ class AccountInvoiceLine(models.Model):
             price_subtotal_signed = self.invoice_id.currency_id.with_context(date=self.invoice_id._get_currency_rate_date()).compute(price_subtotal_signed, self.invoice_id.company_id.currency_id)
         sign = self.invoice_id.type in ['in_refund', 'out_refund'] and -1 or 1
         self.price_subtotal_signed = price_subtotal_signed * sign
+
+    _sql_constraints = [
+        (
+            'check_credit_debit',
+            'CHECK(credit + debit>=0 AND credit * debit=0)',
+            'Wrong credit or debit value in accounting entry !'
+        ),
+        (
+            'check_accountable_required_fields',
+             "CHECK(COALESCE(display_type IN ('line_section', 'line_note'), 'f') OR account_id IS NOT NULL)",
+             "Missing required account on accountable invoice line."
+        ),
+        (
+            'check_non_accountable_fields_null',
+             "CHECK(display_type NOT IN ('line_section', 'line_note') OR (amount_currency = 0 AND debit = 0 AND credit = 0 AND account_id IS NULL))",
+             "Forbidden unit price, account and quantity on non-accountable invoice line"
+        ),
+        (
+            "check_amount_currency_balance_sign",
+            """CHECK(
+                display_type IN ('line_section', 'line_note')
+                OR (
+                    (balance <= 0 AND amount_currency <= 0)
+                    OR
+                    (balance >= 0 AND amount_currency >= 0)
+                )
+            )""",
+            "The amount expressed in the secondary currency must be positive when account is debited and negative when "
+            "account is credited. If the currency is the same as the one from the company, this amount must strictly "
+            "be equal to the balance."
+        ),
+        # (
+        #     'check_amount_currency_balance_sign',
+        #     '''CHECK(
+        #         (
+        #             (currency_id != company_currency_id)
+        #             AND
+        #             (
+        #                 (debit - credit <= 0 AND amount_currency <= 0)
+        #                 OR
+        #                 (debit - credit >= 0 AND amount_currency >= 0)
+        #             )
+        #         )
+        #         OR
+        #         (
+        #             currency_id = company_currency_id
+        #             AND
+        #             ROUND(debit - credit - amount_currency, 2) = 0
+        #         )
+        #     )''',
+        #     "The amount expressed in the secondary currency must be positive when account is debited and negative when "
+        #     "account is credited. If the currency is the same as the one from the company, this amount must strictly "
+        #     "be equal to the balance."
+        # ),
+    ]
+
+    
