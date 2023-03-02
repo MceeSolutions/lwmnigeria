@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <record id="lwm_view_invoice_tree" model="ir.ui.view">
+            <field name="name">lwm.account.move.tree</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_invoice_tree"/>
+            <field name="arch" type="xml">
+                <field name="invoice_origin" position="after">
+                    <field name="total_ordered_quantity"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="lwm_view_move_form" model="ir.ui.view">
+            <field name="name">lwm.account.move</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <field name="amount_residual" position="after">
+                    <div class="oe_subtotal_footer_separator oe_inline o_td_label">
+                        <label for="sub_total" />
+                    </div>
+                    <field name="sub_total" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id'}"/>
+                    <field name="discounted_amount" widget='monetary' options="{'currency_field': 'currency_id'}"/>
+                </field>
+            </field>
+        </record>
+
+    </data>
+</odoo>
