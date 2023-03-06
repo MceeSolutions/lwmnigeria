@@ -6,6 +6,22 @@ class SaleOrder(models.Model):
     _name = "sale.order"
     _inherit = "sale.order"
     
+    # @api.depends('order_line.price_total')
+    # def _amount_all(self):
+    #     """
+    #     Compute the total amounts of the SO.
+    #     """
+    #     for order in self:
+    #         amount_untaxed = amount_tax = 0.0
+    #         for line in order.order_line:
+    #             amount_untaxed += line.price_subtotal
+    #             amount_tax += line.price_tax
+    #         order.update({
+    #             'amount_untaxed': order.pricelist_id.currency_id.round(amount_untaxed),
+    #             'amount_tax': order.pricelist_id.currency_id.round(amount_tax),
+    #             'amount_total': amount_untaxed + amount_tax - order.discounted_amount,
+    #         })
+
     @api.depends('order_line.price_total')
     def _amount_all(self):
         """
@@ -17,8 +33,8 @@ class SaleOrder(models.Model):
                 amount_untaxed += line.price_subtotal
                 amount_tax += line.price_tax
             order.update({
-                'amount_untaxed': order.pricelist_id.currency_id.round(amount_untaxed),
-                'amount_tax': order.pricelist_id.currency_id.round(amount_tax),
+                'amount_untaxed': amount_untaxed,
+                'amount_tax': amount_tax,
                 'amount_total': amount_untaxed + amount_tax - order.discounted_amount,
             })
     
