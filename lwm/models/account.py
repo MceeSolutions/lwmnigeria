@@ -201,7 +201,7 @@ class AccountMove(models.Model):
     
     sub_total = fields.Float(string='Sub Total', compute='_compute_sub_amount', store=True, default=0.0)
     
-    total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=True, default=0.0)
+    total_ordered_quantity = fields.Float(string='Total Quantity', compute='_compute_total_ordered_quantity', store=False, default=0.0)
     
     @api.depends('amount_untaxed', 'amount_tax')
     def _compute_sub_amount(self):
